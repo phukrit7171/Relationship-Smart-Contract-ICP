@@ -1,6 +1,7 @@
 type ProposalStatus = record {
     is_accepted : bool;
     accepted_time : nat64;
+    accepted_by : opt principal;
 };
 
 service : {
