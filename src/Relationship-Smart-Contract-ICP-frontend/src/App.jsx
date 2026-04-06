@@ -30,17 +30,173 @@ function getIdentityProviderUrl() {
   return "https://identity.ic0.app";
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// ── Particles ─────────────────────────────────────────────────────────────────
+
+const Particles = () => (
+  <div className="particles" aria-hidden="true">
+    <span className="particle">💕</span>
+    <span className="particle">💕</span>
+    <span className="particle">💕</span>
+    <span className="particle">💕</span>
+    <span className="particle">💕</span>
+    <span className="particle">💕</span>
+  </div>
+);
+
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+/**
+ * LoadingView — shown while the AuthClient is initialising and blockchain
+ * state is being fetched.
+ *
+ * @returns {JSX.Element}
+ */
+function LoadingView() {
+  return (
+    <main className="proposal-page">
+      <Particles />
+      <div className="card">
+        <div className="spinner" aria-label="Loading…" />
+        <p className="subtitle">Reading the blockchain…</p>
+      </div>
+    </main>
+  );
+}
+
+/**
+ * AcceptedView — shown when the proposal has already been accepted on-chain.
+ *
+ * @param {object}  props
+ * @param {bigint}  props.acceptedTime — nanosecond timestamp of acceptance
+ * @param {object}  props.acceptedBy   — Principal object of the accepting user
+ * @returns {JSX.Element}
+ */
+function AcceptedView({ acceptedTime, acceptedBy }) {
+  return (
+    <main className="proposal-page accepted">
+      <Particles />
+      <div className="card">
+        <div className="hearts" aria-hidden="true">💖💍💖</div>
+        <h1 className="title">She said YES! <span className="title-emoji">🎉</span></h1>
+        <p className="message">
+          Our love story is now permanently engraved on the Internet Computer
+          blockchain — immutable, unstoppable, and forever.
+        </p>
+        <div className="timestamp-box">
+          <span className="timestamp-label">💎 Recorded on-chain at</span>
+          <span className="timestamp-value">{nsToDateString(acceptedTime)}</span>
+          <span className="timestamp-raw">({acceptedTime.toString()} ns)</span>
+        </div>
+        <div className="principal-box">
+          <span className="principal-label">✍️ Digital Signature — Accepted by Principal</span>
+          <span className="principal-value">
+            {acceptedBy
+              ? (acceptedBy.toText ? acceptedBy.toText() : acceptedBy.toString())
+              : ""}
+          </span>
+          <span className="timestamp-raw">
+            This Principal ID is the cryptographic proof of acceptance, permanently stored on-chain.
+          </span>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+/**
+ * ProposalView — shown when the user is authenticated but has not yet
+ * accepted the proposal.
+ *
+ * @param {object}   props
+ * @param {string}   props.principal   — textual Principal ID of the logged-in user
+ * @param {boolean}  props.accepting   — true while the on-chain transaction is in flight
+ * @param {Function} props.onAccept    — callback fired when the "Accept" button is clicked
+ * @param {Function} props.onLogout    — callback fired when the "Logout" button is clicked
+ * @returns {JSX.Element}
+ */
+function ProposalView({ principal, accepting, onAccept, onLogout }) {
+  return (
+    <main className="proposal-page">
+      <Particles />
+      <div className="card">
+        <div className="hearts" aria-hidden="true">💕</div>
+        <h1 className="title">Will You Be My Girlfriend? <span className="title-emoji">💌</span></h1>
+        <p className="message">
+          Every day with you feels like the luckiest day of my life. You make
+          the world brighter, warmer, and infinitely more beautiful. I want to
+          make this official — not just in my heart, but permanently recorded
+          on the blockchain, forever. 🌹
+        </p>
+        <p className="sub-message">
+          Once you click that button, our love becomes{" "}
+          <strong>immutable on-chain history</strong>. No take-backs. 😉
+        </p>
+        <div className="principal-box">
+          <span className="principal-label">🔑 Your Identity (Principal ID)</span>
+          <span className="principal-value">{principal}</span>
+        </div>
+        <button
+          className="accept-btn"
+          onClick={onAccept}
+          disabled={accepting}
+          aria-busy={accepting}
+        >
+          {accepting ? "Recording on-chain… ⏳" : "Accept 💖"}
+        </button>
+        <button className="logout-btn" onClick={onLogout}>
+          Logout
+        </button>
+      </div>
+    </main>
+  );
+}
+
+/**
+ * LoginView — shown when no user is authenticated yet.
+ *
+ * @param {object}   props
+ * @param {Function} props.onLogin — callback fired when the "Login" button is clicked
+ * @returns {JSX.Element}
+ */
+function LoginView({ onLogin }) {
+  return (
+    <main className="proposal-page">
+      <Particles />
+      <div className="card">
+        <div className="hearts" aria-hidden="true">🔐💕</div>
+        <h1 className="title">Will You Be My Girlfriend? <span className="title-emoji">💌</span></h1>
+        <p className="message">
+          To accept this proposal, you need to verify your identity on the
+          Internet Computer. Your Principal ID will be permanently recorded
+          on-chain as cryptographic proof of your love. 💖
+        </p>
+        <p className="sub-message">
+          Login is private, secure, and requires no password — just your
+          device's biometrics or a passkey.
+        </p>
+        <button className="login-btn" onClick={onLogin}>
+          Login with Internet Identity 🌐
+        </button>
+      </div>
+    </main>
+  );
+}
+
+// ── App ───────────────────────────────────────────────────────────────────────
 
 export default function App() {
   const [authClient, setAuthClient] = useState(null);
-  const [identity, setIdentity] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [principal, setPrincipal] = useState("");
   const [actor, setActor] = useState(null);
-  const [isAccepted, setIsAccepted] = useState(false);
-  const [acceptedTime, setAcceptedTime] = useState(0n);
-  const [acceptedBy, setAcceptedBy] = useState(null);
+
+  // Consolidated proposal status state
+  const [proposalStatus, setProposalStatus] = useState({
+    isAccepted: false,
+    acceptedTime: 0n,
+    acceptedBy: null,
+  });
+
   const [loading, setLoading] = useState(true);
   const [accepting, setAccepting] = useState(false);
 
@@ -62,9 +218,11 @@ export default function App() {
   const fetchStatus = useCallback(async (actorInstance) => {
     try {
       const status = await actorInstance.get_status();
-      setIsAccepted(status.is_accepted);
-      setAcceptedTime(status.accepted_time);
-      setAcceptedBy(status.accepted_by ?? null);
+      setProposalStatus({
+        isAccepted: status.is_accepted,
+        acceptedTime: status.accepted_time,
+        acceptedBy: status.accepted_by ?? null,
+      });
     } catch (err) {
       console.error("Error fetching status:", err);
     }
@@ -82,7 +240,6 @@ export default function App() {
         if (alreadyAuthenticated) {
           const id = client.getIdentity();
           const p = id.getPrincipal();
-          setIdentity(id);
           setIsAuthenticated(true);
           setPrincipal(p.toText());
 
@@ -113,7 +270,6 @@ export default function App() {
         try {
           const id = authClient.getIdentity();
           const p = id.getPrincipal();
-          setIdentity(id);
           setIsAuthenticated(true);
           setPrincipal(p.toText());
 
@@ -135,13 +291,10 @@ export default function App() {
   async function logout() {
     if (!authClient) return;
     await authClient.logout();
-    setIdentity(null);
     setIsAuthenticated(false);
     setPrincipal("");
     setActor(null);
-    setIsAccepted(false);
-    setAcceptedTime(0n);
-    setAcceptedBy(null);
+    setProposalStatus({ isAccepted: false, acceptedTime: 0n, acceptedBy: null });
   }
 
   // ── Accept proposal ─────────────────────────────────────────────────────────
@@ -159,110 +312,31 @@ export default function App() {
     }
   }
 
-  // ── Render: loading ─────────────────────────────────────────────────────────
+  // ── Render ──────────────────────────────────────────────────────────────────
 
   if (loading) {
+    return <LoadingView />;
+  }
+
+  if (isAuthenticated && proposalStatus.isAccepted) {
     return (
-      <main className="proposal-page">
-        <div className="card">
-          <div className="spinner" aria-label="Loading…" />
-          <p className="subtitle">Reading the blockchain…</p>
-        </div>
-      </main>
+      <AcceptedView
+        acceptedTime={proposalStatus.acceptedTime}
+        acceptedBy={proposalStatus.acceptedBy}
+      />
     );
   }
 
-  // ── Render: accepted ────────────────────────────────────────────────────────
-
-  if (isAuthenticated && isAccepted) {
+  if (isAuthenticated && !proposalStatus.isAccepted) {
     return (
-      <main className="proposal-page accepted">
-        <div className="card">
-          <div className="hearts" aria-hidden="true">💖💍💖</div>
-          <h1 className="title">She said YES! 🎉</h1>
-          <p className="message">
-            Our love story is now permanently engraved on the Internet Computer
-            blockchain — immutable, unstoppable, and forever.
-          </p>
-          <div className="timestamp-box">
-            <span className="timestamp-label">💎 Recorded on-chain at</span>
-            <span className="timestamp-value">{nsToDateString(acceptedTime)}</span>
-            <span className="timestamp-raw">({acceptedTime.toString()} ns)</span>
-          </div>
-          <div className="principal-box">
-            <span className="principal-label">✍️ Digital Signature — Accepted by Principal</span>
-            <span className="principal-value">
-              {acceptedBy
-                ? (acceptedBy.toText ? acceptedBy.toText() : acceptedBy.toString())
-                : ""}
-            </span>
-            <span className="timestamp-raw">
-              This Principal ID is the cryptographic proof of acceptance, permanently stored on-chain.
-            </span>
-          </div>
-        </div>
-      </main>
+      <ProposalView
+        principal={principal}
+        accepting={accepting}
+        onAccept={handleAccept}
+        onLogout={logout}
+      />
     );
   }
 
-  // ── Render: logged in, not yet accepted ─────────────────────────────────────
-
-  if (isAuthenticated && !isAccepted) {
-    return (
-      <main className="proposal-page">
-        <div className="card">
-          <div className="hearts" aria-hidden="true">💕</div>
-          <h1 className="title">Will You Be My Girlfriend? 💌</h1>
-          <p className="message">
-            Every day with you feels like the luckiest day of my life. You make
-            the world brighter, warmer, and infinitely more beautiful. I want to
-            make this official — not just in my heart, but permanently recorded
-            on the blockchain, forever. 🌹
-          </p>
-          <p className="sub-message">
-            Once you click that button, our love becomes{" "}
-            <strong>immutable on-chain history</strong>. No take-backs. 😉
-          </p>
-          <div className="principal-box">
-            <span className="principal-label">🔑 Your Identity (Principal ID)</span>
-            <span className="principal-value">{principal}</span>
-          </div>
-          <button
-            className="accept-btn"
-            onClick={handleAccept}
-            disabled={accepting}
-            aria-busy={accepting}
-          >
-            {accepting ? "Recording on-chain… ⏳" : "Accept 💖"}
-          </button>
-          <button className="logout-btn" onClick={logout}>
-            Logout
-          </button>
-        </div>
-      </main>
-    );
-  }
-
-  // ── Render: not logged in ───────────────────────────────────────────────────
-
-  return (
-    <main className="proposal-page">
-      <div className="card">
-        <div className="hearts" aria-hidden="true">🔐💕</div>
-        <h1 className="title">Will You Be My Girlfriend? 💌</h1>
-        <p className="message">
-          To accept this proposal, you need to verify your identity on the
-          Internet Computer. Your Principal ID will be permanently recorded
-          on-chain as cryptographic proof of your love. 💖
-        </p>
-        <p className="sub-message">
-          Login is private, secure, and requires no password — just your
-          device's biometrics or a passkey.
-        </p>
-        <button className="login-btn" onClick={login}>
-          Login with Internet Identity 🌐
-        </button>
-      </div>
-    </main>
-  );
+  return <LoginView onLogin={login} />;
 }
