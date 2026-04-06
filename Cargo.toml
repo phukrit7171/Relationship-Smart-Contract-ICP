@@ -1,0 +1,5 @@
+[workspace]
+members = [
+    "src/Relationship-Smart-Contract-ICP-backend"
+]
+resolver = "2"

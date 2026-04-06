@@ -1,0 +1,38 @@
+{
+  "canisters": {
+    "Relationship-Smart-Contract-ICP-backend": {
+      "candid": "src/Relationship-Smart-Contract-ICP-backend/Relationship-Smart-Contract-ICP-backend.did",
+      "package": "Relationship-Smart-Contract-ICP-backend",
+      "type": "rust"
+    },
+    "Relationship-Smart-Contract-ICP-frontend": {
+      "dependencies": [
+        "Relationship-Smart-Contract-ICP-backend"
+      ],
+      "source": [
+        "src/Relationship-Smart-Contract-ICP-frontend/dist"
+      ],
+      "type": "assets",
+      "workspace": "Relationship-Smart-Contract-ICP-frontend"
+    },
+    "internet_identity": {
+      "candid": "https://github.com/dfinity/internet-identity/releases/latest/download/internet_identity.did",
+      "frontend": {},
+      "remote": {
+        "id": {
+          "ic": "rdmx6-jaaaa-aaaaa-aaadq-cai"
+        }
+      },
+      "type": "custom",
+      "wasm": "https://github.com/dfinity/internet-identity/releases/latest/download/internet_identity_dev.wasm.gz"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}
