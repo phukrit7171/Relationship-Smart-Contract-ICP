@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { AuthClient } from "@icp-sdk/auth/client";
-import { HttpAgent, Actor } from "@icp-sdk/core/agent";
-import { canisterId, idlFactory } from "declarations/Relationship-Smart-Contract-ICP-backend";
+import { safeGetCanisterEnv } from "@icp-sdk/core/agent/canister-env";
+import { createActor } from "./bindings/relationship_backend";
 import "./index.scss";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -26,8 +26,8 @@ function getIdentityProviderUrl() {
     host === "localhost" ||
     host === "127.0.0.1" ||
     host.endsWith(".localhost");
-  if (isLocal) return "http://rdmx6-jaaaa-aaaaa-aaadq-cai.localhost:4943";
-  return "https://identity.ic0.app";
+  if (isLocal) return "http://id.ai.localhost:8000/authorize";
+  return "https://id.ai/authorize";
 }
 
 // ── Particles ─────────────────────────────────────────────────────────────────
@@ -202,15 +202,22 @@ export default function App() {
 
   // ── Actor factory ───────────────────────────────────────────────────────────
 
-  const createAuthenticatedActor = useCallback(async (id) => {
-    const agent = new HttpAgent({ identity: id });
-    if (process.env.DFX_NETWORK !== "ic") {
-      await agent.fetchRootKey().catch((err) => {
-        console.warn("Unable to fetch root key — is the local replica running?");
-        console.error(err);
-      });
+  const createAuthenticatedActor = useCallback((identity) => {
+    const canisterEnv = safeGetCanisterEnv();
+    const canisterId =
+      canisterEnv?.["PUBLIC_CANISTER_ID:relationship_backend"]
+
+    if (!canisterId) {
+      throw new Error("Backend canister ID is unavailable. Deploy the project or start Vite after deploying the backend.");
     }
-    return Actor.createActor(idlFactory, { agent, canisterId });
+
+    return createActor(canisterId, {
+      agentOptions: {
+        identity,
+        host: window.location.origin,
+        rootKey: canisterEnv?.IC_ROOT_KEY,
+      },
+    });
   }, []);
 
   // ── Status fetcher ──────────────────────────────────────────────────────────
@@ -233,12 +240,14 @@ export default function App() {
   useEffect(() => {
     async function initAuth() {
       try {
-        const client = await AuthClient.create();
+        const client = new AuthClient({
+          identityProvider: getIdentityProviderUrl(),
+        });
         setAuthClient(client);
 
-        const alreadyAuthenticated = await client.isAuthenticated();
+        const alreadyAuthenticated = client.isAuthenticated();
         if (alreadyAuthenticated) {
-          const id = client.getIdentity();
+          const id = await client.getIdentity();
           const p = id.getPrincipal();
           setIsAuthenticated(true);
           setPrincipal(p.toText());
@@ -261,36 +270,29 @@ export default function App() {
 
   async function login() {
     if (!authClient) return;
-    const identityProvider = getIdentityProviderUrl();
 
-    authClient.login({
-      identityProvider,
-      maxTimeToLive: BigInt(8) * BigInt(3_600_000_000_000),
-      onSuccess: async () => {
-        try {
-          const id = authClient.getIdentity();
-          const p = id.getPrincipal();
-          setIsAuthenticated(true);
-          setPrincipal(p.toText());
 
-          const authenticatedActor = await createAuthenticatedActor(id);
-          setActor(authenticatedActor);
-          await fetchStatus(authenticatedActor);
-        } catch (err) {
-          console.error("Post-login setup error:", err);
-        }
-      },
-      onError: (err) => {
-        console.error("Login error:", err);
-      },
-    });
+    try {
+      const id = await authClient.signIn({
+        maxTimeToLive: BigInt(8) * BigInt(3_600_000_000_000),
+      });
+      const p = id.getPrincipal();
+      setIsAuthenticated(true);
+      setPrincipal(p.toText());
+
+      const authenticatedActor = createAuthenticatedActor(id);
+      setActor(authenticatedActor);
+      await fetchStatus(authenticatedActor);
+    } catch (err) {
+      console.error("Login error:", err);
+    }
   }
 
   // ── Logout ──────────────────────────────────────────────────────────────────
 
   async function logout() {
     if (!authClient) return;
-    await authClient.logout();
+    await authClient.signOut();
     setIsAuthenticated(false);
     setPrincipal("");
     setActor(null);

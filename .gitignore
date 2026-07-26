@@ -7,11 +7,11 @@
 .DS_Store
 **/.DS_Store
 
-# dfx temporary files
-.dfx/
+# ICP CLI cache (deployment mappings in .icp/data/ are committed)
+.icp/cache/
 
-# generated files
-**/declarations/
+# Generated bindings
+**/src/bindings/
 
 # rust
 target/
