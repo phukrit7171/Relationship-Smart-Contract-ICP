@@ -1,0 +1,156 @@
+// The shared sweep highlight on the two primary buttons.
+@mixin sweep($alpha) {
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -75%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(
+      120deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, $alpha) 50%,
+      rgba(255, 255, 255, 0) 100%
+    );
+    transform: skewX(-20deg);
+    transition: left 0s ease;
+    pointer-events: none;
+  }
+
+  &:hover:not(:disabled)::before {
+    left: 130%;
+    transition: left 0.55s ease;
+  }
+}
+
+@mixin primary-button {
+  position: relative;
+  overflow: hidden;
+  display: inline-block;
+  padding: 0.9rem 3rem;
+  font-family: var(--font-body);
+  font-weight: 700;
+  color: var(--white);
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+
+  &:active:not(:disabled) {
+    transform: translateY(0) scale(0.98);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+}
+
+.accept-btn {
+  @include primary-button;
+  @include sweep(0.45);
+  font-size: 1.15rem;
+  background: linear-gradient(135deg, var(--pink) 0%, var(--pink-deep) 100%);
+  box-shadow:
+    0 4px 18px rgba(194, 24, 91, 0.4),
+    0 1px 4px rgba(194, 24, 91, 0.2);
+
+  &:hover:not(:disabled) {
+    transform: translateY(-3px) scale(1.04);
+    box-shadow:
+      0 10px 32px rgba(194, 24, 91, 0.5),
+      0 3px 10px rgba(194, 24, 91, 0.25);
+  }
+
+  &:active:not(:disabled) {
+    box-shadow: 0 4px 14px rgba(194, 24, 91, 0.35);
+  }
+}
+
+.login-btn {
+  @include primary-button;
+  @include sweep(0.4);
+  font-size: 1.1rem;
+  background: linear-gradient(135deg, #5c6bc0 0%, #3949ab 50%, #1a237e 100%);
+  box-shadow:
+    0 4px 18px rgba(57, 73, 171, 0.4),
+    0 1px 4px rgba(57, 73, 171, 0.2);
+
+  &:hover:not(:disabled) {
+    transform: translateY(-3px) scale(1.04);
+    box-shadow:
+      0 10px 32px rgba(57, 73, 171, 0.5),
+      0 3px 10px rgba(57, 73, 171, 0.25);
+  }
+}
+
+.logout-btn {
+  display: block;
+  margin: 1.2rem auto 0;
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 105, 180, 0.35);
+  color: var(--text-mid);
+  padding: 0.45rem 1.4rem;
+  border-radius: 50px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-family: var(--font-body);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  transition: all 0.2s ease;
+  text-decoration: none;
+
+  &:hover:not(:disabled) {
+    background: rgba(255, 240, 246, 0.85);
+    border-color: rgba(255, 105, 180, 0.55);
+    color: var(--pink-deep);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(194, 24, 91, 0.12);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+
+.danger-btn {
+  @extend .logout-btn;
+  border-color: rgba(179, 38, 30, 0.35);
+  color: var(--danger);
+
+  &:hover:not(:disabled) {
+    background: rgba(179, 38, 30, 0.08);
+    border-color: rgba(179, 38, 30, 0.6);
+    color: var(--danger);
+  }
+}
+
+.danger-zone {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px dashed rgba(179, 38, 30, 0.25);
+}
+
+.share-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+  align-items: center;
+  margin-top: 1rem;
+
+  .logout-btn {
+    margin-top: 0;
+  }
+}

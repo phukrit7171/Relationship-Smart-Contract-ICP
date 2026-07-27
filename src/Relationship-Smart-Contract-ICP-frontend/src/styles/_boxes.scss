@@ -1,0 +1,143 @@
+.timestamp-box {
+  margin-top: 1.8rem;
+  padding: 1.2rem 1.5rem;
+  background: rgba(255, 240, 246, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: var(--radius-box);
+  border: 1px solid rgba(255, 105, 180, 0.22);
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  box-shadow: var(--shadow-box);
+  transition: all 0.2s ease;
+}
+
+.timestamp-label {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-mid);
+  font-family: var(--font-body);
+  font-weight: 700;
+  opacity: 0.75;
+}
+
+.timestamp-value {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--pink-deep);
+  letter-spacing: -0.01em;
+}
+
+.timestamp-raw {
+  font-size: 0.7rem;
+  color: rgba(123, 63, 94, 0.55);
+  font-family: var(--font-mono);
+  word-break: break-word;
+  line-height: 1.5;
+}
+
+.principal-box {
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem 1.2rem;
+  background: rgba(224, 242, 254, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: var(--radius-box);
+  border: 1px solid rgba(125, 211, 252, 0.4);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  text-align: left;
+  box-shadow:
+    0 2px 12px rgba(3, 105, 161, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  transition: all 0.2s ease;
+}
+
+.principal-label {
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--blue-label);
+  font-family: var(--font-body);
+  font-weight: 700;
+  opacity: 0.8;
+}
+
+.principal-value {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--blue-value);
+  font-family: var(--font-mono);
+  word-break: break-all;
+  line-height: 1.55;
+}
+
+.principal-copy {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+
+  &:hover .copy-hint {
+    opacity: 1;
+  }
+}
+
+.copy-hint {
+  opacity: 0.5;
+  font-weight: 400;
+  transition: opacity 0.2s ease;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(255, 105, 180, 0.2);
+  border-top-color: var(--pink-deep);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 1.2rem;
+  filter: drop-shadow(0 0 6px rgba(194, 24, 91, 0.25));
+}
+
+.share-box {
+  margin: 1.8rem 0;
+  padding: 1.4rem 1.2rem;
+  background: rgba(255, 250, 235, 0.7);
+  border-radius: var(--radius-box);
+  border: 1px solid rgba(249, 168, 37, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  box-shadow: var(--shadow-box);
+}
+
+// The code is the thing people read aloud and retype, so it gets more room
+// and more tracking than anything else on the page.
+.invite-code {
+  font-family: var(--font-mono);
+  font-size: clamp(1.3rem, 6vw, 1.9rem);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--pink-dark);
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px dashed rgba(194, 24, 91, 0.4);
+  border-radius: 0.8rem;
+  padding: 0.7rem 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  word-break: break-all;
+  user-select: all;
+  -webkit-user-select: all;
+
+  &:hover {
+    background: var(--white);
+    border-color: var(--pink-deep);
+  }
+}

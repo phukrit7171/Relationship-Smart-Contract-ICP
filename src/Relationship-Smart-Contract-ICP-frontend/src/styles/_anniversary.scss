@@ -1,0 +1,105 @@
+.together-box {
+  margin-top: 1.8rem;
+  padding: 1.2rem 1.5rem;
+  background: rgba(255, 240, 246, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: var(--radius-box);
+  border: 1px solid rgba(255, 105, 180, 0.22);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  box-shadow: var(--shadow-box);
+}
+
+.together-figures {
+  display: flex;
+  justify-content: space-around;
+  gap: 0.5rem;
+}
+
+.figure {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+
+  b {
+    font-family: var(--font-display);
+    font-size: clamp(1.3rem, 5vw, 1.8rem);
+    color: var(--pink-deep);
+    line-height: 1.1;
+  }
+
+  small {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--text-mid);
+    opacity: 0.75;
+  }
+}
+
+// Tabular figures stop the countdown from jittering as digits change width.
+.countdown {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--pink-deep);
+  font-weight: 700;
+}
+
+.skew-warning {
+  color: var(--danger);
+  opacity: 0.9;
+}
+
+.anniversary-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin: 1.5rem 0;
+  padding: 0.9rem 1.1rem;
+  text-align: left;
+  background: linear-gradient(
+    135deg,
+    rgba(249, 168, 37, 0.16) 0%,
+    rgba(255, 105, 180, 0.16) 100%
+  );
+  border: 1px solid rgba(249, 168, 37, 0.45);
+  border-radius: var(--radius-box);
+  box-shadow: var(--shadow-box);
+
+  &.is-today {
+    border-color: var(--pink-deep);
+    background: linear-gradient(
+      135deg,
+      rgba(255, 105, 180, 0.22) 0%,
+      rgba(249, 168, 37, 0.22) 100%
+    );
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+}
+
+.banner-emoji {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.95rem;
+  color: var(--text-dark);
+
+  strong {
+    font-family: var(--font-display);
+    color: var(--pink-dark);
+  }
+
+  a,
+  button {
+    align-self: flex-start;
+    margin: 0;
+  }
+}

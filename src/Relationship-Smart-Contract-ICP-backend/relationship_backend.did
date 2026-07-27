@@ -1,10 +1,468 @@
+// ICRC-1/7 account. Subaccounts are accepted and ignored: these tokens can't
+// move, so there is nothing for a subaccount to distinguish.
+type Account = record { owner : principal; subaccount : opt blob };
+type ChunkArgs = record {
+  chunk_index : nat32;
+  data : blob;
+  photo_id : nat64;
+  relationship_id : nat64;
+};
+type ChunkRef = record {
+  chunk_index : nat32;
+  photo_id : nat64;
+  relationship_id : nat64;
+};
+type EndArgs = record { relationship_id : nat64; reason : text };
+type Err = variant {
+  // Something that should not happen did. Reported, not trapped, so state
+  // written before the failure is still visible for debugging.
+  Internal : text;
+  // Argument that is malformed rather than merely out of range.
+  Invalid : text;
+  // You already have an unclaimed invite out. Cancel it first.
+  DuplicateInvite : nat64;
+  // A text field is over its character limit.
+  TooLong : record { got : nat64; field : text; limit : nat64 };
+  // A photo, or a chunk of one, exceeds its size limit.
+  TooLarge : record { got : nat64; limit : nat64 };
+  // A chunk that doesn't fit the upload it claims to belong to.
+  BadChunk : text;
+  // No such relationship, or an invite code that is wrong, spent or expired.
+  // Deliberately does not distinguish those cases: telling a stranger
+  // "expired" instead of "wrong" confirms the code existed.
+  NotFound;
+  // The named principal is already in an active relationship.
+  AlreadyInRelationship : principal;
+  // Caller is the anonymous principal — sign in with Internet Identity.
+  NotAuthenticated;
+  NotAMember;
+  UnsupportedContentType : text;
+  // You cannot propose to yourself.
+  SelfProposal;
+  // Controller-only endpoint, or an admin action that already ran.
+  Forbidden : text;
+  // The relationship is not in a state where this makes sense.
+  InvalidState : text;
+  // A per-relationship or canister-wide storage limit is reached.
+  QuotaExceeded : text;
+};
+// A Candid-encodable representation of an HTTP request. This struct is used by
+// the `http_request` method of the HTTP Gateway Protocol's Candid interface.
+// 
+// # Examples
+// 
+// ```
+// use ic_http_certification::{HttpRequest, Method};
+// 
+// let request = HttpRequest::builder()
+// .with_method(Method::GET)
+// .with_url("/")
+// .with_headers(vec![("X-Custom-Foo".into(), "Bar".into())])
+// .with_body(&[1, 2, 3])
+// .with_certificate_version(2)
+// .build();
+// 
+// assert_eq!(request.method(), Method::GET);
+// assert_eq!(request.url(), "/");
+// assert_eq!(request.headers(), &[("X-Custom-Foo".into(), "Bar".into())]);
+// assert_eq!(request.body(), &[1, 2, 3]);
+// assert_eq!(request.certificate_version(), Some(2));
+// ```
+// 
+// # Helpers
+// 
+// There are also a number of convenience methods for quickly creating an [HttpRequest] with
+// commonly used HTTP methods:
+// 
+// - [GET](HttpRequest::get)
+// - [POST](HttpRequest::post)
+// - [PUT](HttpRequest::put)
+// - [PATCH](HttpRequest::patch)
+// - [DELETE](HttpRequest::delete)
+// 
+// ```
+// use ic_http_certification::HttpRequest;
+// 
+// let request = HttpRequest::get("/").build();
+// 
+// assert_eq!(request.method(), "GET");
+// assert_eq!(request.url(), "/");
+// ```
+type HttpRequest = record {
+  // HTTP request URL.
+  url : text;
+  // HTTP request method.
+  method : text;
+  // HTTP request body as an array of bytes.
+  body : blob;
+  // HTTP request headers.
+  headers : vec record { text; text };
+  // The max response verification version to use in the response's
+  // certificate.
+  certificate_version : opt nat16;
+};
+// A Candid-encodable representation of an HTTP response. This struct is used
+// by the `http_request` method of the HTTP Gateway Protocol's Candid interface.
+// 
+// # Examples
+// 
+// ```
+// use ic_http_certification::{HttpResponse, StatusCode};
+// 
+// let response = HttpResponse::builder()
+// .with_status_code(StatusCode::OK)
+// .with_headers(vec![("Content-Type".into(), "text/plain".into())])
+// .with_body(b"Hello, World!")
+// .with_upgrade(false)
+// .build();
+// 
+// assert_eq!(response.status_code(), StatusCode::OK);
+// assert_eq!(response.headers(), &[("Content-Type".into(), "text/plain".into())]);
+// assert_eq!(response.body(), b"Hello, World!");
+// assert_eq!(response.upgrade(), Some(false));
+// ```
+// 
+// # Helpers
+// 
+// There are also a number of convenience methods for quickly creating an [HttpResponse] with
+// commonly used HTTP status codes:
+// 
+// - [OK](HttpResponse::ok)
+// - [CREATED](HttpResponse::created)
+// - [NO_CONTENT](HttpResponse::no_content)
+// - [MOVED_PERMANENTLY](HttpResponse::moved_permanently)
+// - [TEMPORARY_REDIRECT](HttpResponse::temporary_redirect)
+// - [BAD_REQUEST](HttpResponse::bad_request)
+// - [UNAUTHORIZED](HttpResponse::unauthorized)
+// - [FORBIDDEN](HttpResponse::forbidden)
+// - [NOT_FOUND](HttpResponse::not_found)
+// - [METHOD_NOT_ALLOWED](HttpResponse::method_not_allowed)
+// - [TOO_MANY_REQUESTS](HttpResponse::too_many_requests)
+// - [INTERNAL_SERVER_ERROR](HttpResponse::internal_server_error)
+// 
+// ```
+// use ic_http_certification::{HttpResponse, StatusCode};
+// 
+// let response = HttpResponse::ok(b"Hello, World!", vec![("Content-Type".into(), "text/plain".into())]).build();
+// 
+// assert_eq!(response.status_code(), StatusCode::OK);
+// assert_eq!(response.headers(), &[("Content-Type".into(), "text/plain".into())]);
+// assert_eq!(response.body(), b"Hello, World!");
+// ```
+type HttpResponse = record {
+  // HTTP response body as an array of bytes.
+  body : blob;
+  // HTTP response headers.
+  headers : vec record { text; text };
+  // Whether the corresponding HTTP request should be upgraded to an update
+  // call.
+  upgrade : opt bool;
+  // HTTP response status code.
+  status_code : nat16;
+};
+// What someone holding an invite link may see before signing in.
+type InvitePreview = record {
+  title : text;
+  created_at : nat64;
+  pinned : bool;
+  message : text;
+  proposer : principal;
+  relationship_id : nat64;
+  expires_at : opt nat64;
+};
+// Re-seeds the one relationship that lived in the pre-stable-memory canister.
+type LegacyImportArgs = record {
+  title : text;
+  accepted_at : nat64;
+  recipient : principal;
+  message : text;
+  proposer : principal;
+};
+// What one signed-in principal needs to render the whole app.
+type MyState = record {
+  // Canister time, so the frontend can warn about a badly skewed clock
+  // before it renders a countdown off by hours.
+  now : nat64;
+  active : opt Relationship;
+  // Pinned invites addressed to the caller. Open-link invites never appear
+  // here — they are only reachable through the link itself.
+  incoming : vec Relationship;
+  // Closed relationships, newest first, capped at `MAX_HISTORY_ITEMS`.
+  history : vec Relationship;
+  caller : principal;
+  // The caller's own unclaimed invite, if any.
+  outgoing : opt Relationship;
+};
+// The client-declared half of a photo, supplied before any bytes arrive.
+type PhotoDraft = record {
+  height : nat32;
+  kind : PhotoKind;
+  total_bytes : nat64;
+  content_type : text;
+  chunk_count : nat32;
+  caption : text;
+  width : nat32;
+  relationship_id : nat64;
+  taken_at : nat64;
+};
+type PhotoKind = variant {
+  // Anything else worth keeping.
+  Memory;
+  // The one taken when they said yes. At most one per relationship, and it
+  // cannot be deleted by the partner while the relationship is active.
+  First;
+  // Marks an anniversary; these are what the timeline is really for.
+  Anniversary;
+};
+type PhotoMeta = record {
+  height : nat32;
+  // Set when minted as a keepsake: the photo becomes publicly servable.
+  is_public : bool;
+  // Filled in at finish. The client re-hashes the reassembled bytes and
+  // compares, which is what makes an uncertified query response safe here.
+  sha256 : blob;
+  token_id : opt nat64;
+  kind : PhotoKind;
+  total_bytes : nat64;
+  received_chunks : nat32;
+  content_type : text;
+  photo_id : nat64;
+  state : PhotoState;
+  chunk_count : nat32;
+  caption : text;
+  uploader : principal;
+  width : nat32;
+  relationship_id : nat64;
+  // When the moment happened, which is not when it was uploaded. This is
+  // the timeline's sort key, so a photo added late still lands in place.
+  taken_at : nat64;
+  uploaded_at : nat64;
+};
+// A full replace of the editable fields, not a sparse patch.
+// 
+// `opt` fields would be the obvious encoding, but @icp-sdk/bindgen converts
+// an optional record field with `value.x ? some : none` — a truthiness test.
+// An empty caption is falsy, so "clear the caption" would arrive as "leave it
+// alone" and the edit would silently do nothing. Requiring every field makes
+// that class of bug impossible to write.
+type PhotoPatch = record {
+  kind : PhotoKind;
+  photo_id : nat64;
+  caption : text;
+  relationship_id : nat64;
+  taken_at : nat64;
+};
+type PhotoRef = record { photo_id : nat64; relationship_id : nat64 };
+type PhotoState = variant {
+  // Chunks are still arriving. Doubles as the upload session.
+  Uploading;
+  Complete;
+};
+// The shape the pre-overhaul frontend asks for. Kept so the deployed asset
+// build keeps working in the window between the backend and frontend deploys.
 type ProposalStatus = record {
-    is_accepted : bool;
-    accepted_time : nat64;
-    accepted_by : opt principal;
+  accepted_time : nat64;
+  is_accepted : bool;
+  accepted_by : opt principal;
 };
-
-service : {
-    "accept_proposal" : () -> (text);
-    "get_status" : () -> (ProposalStatus) query;
+type ProposeArgs = record {
+  title : text;
+  ttl_seconds : opt nat64;
+  // `None` mints an open link that anyone holding it can accept.
+  recipient : opt principal;
+  // Requires `recipient`. Restricts acceptance to that one principal.
+  pinned : bool;
+  message : text;
 };
+type RelStatus = variant {
+  // It happened, and then it ended.
+  Ended;
+  Active;
+  // The recipient said no.
+  Declined;
+  // The proposer withdrew the invite, or it expired.
+  Cancelled;
+  // An invite is out and nobody has claimed it.
+  Pending;
+};
+type Relationship = record {
+  id : nat64;
+  status : RelStatus;
+  title : text;
+  next_photo_id : nat64;
+  first_photo_id : opt nat64;
+  photo_count : nat32;
+  end_reason : text;
+  // The anniversary anchor. Set on acceptance and never cleared, not even
+  // when the relationship ends — the date still happened.
+  accepted_at : opt nat64;
+  // `None` while an open invite link is outstanding; set once someone
+  // claims it, or up front when the proposer pins a specific principal.
+  recipient : opt principal;
+  // Present only while `Pending`; cleared once the invite is resolved so a
+  // spent code is never displayed as if it still worked.
+  invite_code : opt text;
+  created_at : nat64;
+  // Only the named `recipient` may accept.
+  pinned : bool;
+  message : text;
+  bytes_used : nat64;
+  proposer : principal;
+  ended_at : opt nat64;
+  ended_by : opt principal;
+  responded_at : opt nat64;
+  expires_at : opt nat64;
+};
+type RespondArgs = record { accept : bool; relationship_id : nat64 };
+type Result = variant { Ok; Err : Err };
+type Result_1 = variant { Ok : Relationship; Err : Err };
+type Result_2 = variant { Ok : PhotoMeta; Err : Err };
+type Result_3 = variant { Ok : InvitePreview; Err : Err };
+type Result_4 = variant { Ok : blob; Err : Err };
+type Result_5 = variant { Ok : nat; Err : TransferError };
+type Result_6 = variant { Ok : vec PhotoMeta; Err : Err };
+type Result_7 = variant { Ok : nat64; Err : Err };
+type SetTitleArgs = record { title : text; relationship_id : nat64 };
+type Stats = record {
+  cycles_balance : nat;
+  active_relationships : nat64;
+  pending_invites : nat64;
+  schema_version : nat32;
+  bytes_used : nat64;
+  relationships : nat64;
+  stable_pages : nat64;
+  photos : nat64;
+};
+type SupportedStandard = record { url : text; name : text };
+type TransferArg = record {
+  to : Account;
+  token_id : nat;
+  memo : opt blob;
+  from_subaccount : opt blob;
+  created_at_time : opt nat64;
+};
+type TransferError = variant {
+  GenericError : record { message : text; error_code : nat };
+  Duplicate : record { duplicate_of : nat };
+  NonExistingTokenId;
+  Unauthorized;
+  CreatedInFuture : record { ledger_time : nat64 };
+  InvalidRecipient;
+  GenericBatchError : record { message : text; error_code : nat };
+  TooOld;
+};
+// ICRC-3 metadata value.
+type Value = variant {
+  Int : int;
+  Map : Vec;
+  Nat : nat;
+  Blob : blob;
+  Text : text;
+  Array : vec Value;
+};
+type Vec = vec record {
+  text;
+  variant {
+    Int : int;
+    Map : Vec;
+    Nat : nat;
+    Blob : blob;
+    Text : text;
+    Array : vec Value;
+  };
+};
+service : () -> {
+  abort_photo_upload : (PhotoRef) -> (Result);
+  accept_invite : (text) -> (Result_1);
+  admin_import_legacy : (LegacyImportArgs) -> (Result_1);
+  // Withdraws your own unclaimed invite and frees the code.
+  cancel_proposal : (nat64) -> (Result);
+  decline_invite : (text) -> (Result);
+  delete_photo : (PhotoRef) -> (Result);
+  // Ends an active relationship. Either partner may do this alone.
+  end_relationship : (EndArgs) -> (Result);
+  finish_photo_upload : (PhotoRef) -> (Result_2);
+  // Reads an invite without signing in, so someone opening a link can see what
+  // they are being asked before deciding to authenticate.
+  // 
+  // Anyone holding the code can read the message. That is inherent to a
+  // shareable link; pin the invite to a principal if it matters.
+  get_invite_preview : (text) -> (Result_3) query;
+  // Everything the signed-in principal needs to render the app. Returns an
+  // empty state for anonymous callers rather than an error, because this backs
+  // the first page load.
+  get_my_state : () -> (MyState) query;
+  // One chunk per call. Membership is checked here, which is exactly what
+  // `http_request` could not do — see the module docs in `photo`.
+  get_photo_chunk : (ChunkRef) -> (Result_4) query;
+  get_photo_meta : (PhotoRef) -> (Result_2) query;
+  get_relationship : (nat64) -> (Result_1) query;
+  // Deprecated. Serves the pre-overhaul frontend during the deploy window; drop
+  // it once the new asset build is live on every environment.
+  get_status : () -> (ProposalStatus) query;
+  // Serves photos minted as keepsakes, and nothing else.
+  // 
+  // The boundary node calls this anonymously, so it cannot authorise anyone —
+  // which is exactly why only `is_public` photos are reachable here.
+  http_request : (HttpRequest) -> (HttpResponse) query;
+  icrc10_supported_standards : () -> (vec SupportedStandard) query;
+  // Vacuously true: transfers always fail, so no batch is ever partly applied.
+  icrc7_atomic_batch_transfers : () -> (opt bool) query;
+  icrc7_balance_of : (vec Account) -> (vec nat) query;
+  icrc7_collection_metadata : () -> (vec record { text; Value }) query;
+  icrc7_default_take_value : () -> (opt nat) query;
+  icrc7_description : () -> (opt text) query;
+  icrc7_logo : () -> (opt text) query;
+  icrc7_max_memo_size : () -> (opt nat) query;
+  icrc7_max_query_batch_size : () -> (opt nat) query;
+  icrc7_max_take_value : () -> (opt nat) query;
+  // Zero: the only update is `mint_keepsake`, which is not a batch.
+  icrc7_max_update_batch_size : () -> (opt nat) query;
+  icrc7_name : () -> (text) query;
+  // One canonical owner per token, as the standard requires. Both partners are
+  // in the token metadata, and `icrc7_tokens_of` answers for either.
+  icrc7_owner_of : (vec nat) -> (vec opt Account) query;
+  icrc7_permitted_drift : () -> (opt nat) query;
+  // No cap: a couple can mark an anniversary every year for as long as it lasts.
+  icrc7_supply_cap : () -> (opt nat) query;
+  icrc7_symbol : () -> (text) query;
+  icrc7_token_metadata : (vec nat) -> (
+      vec opt vec record { text; Value },
+    ) query;
+  icrc7_tokens : (opt nat, opt nat) -> (vec nat) query;
+  icrc7_tokens_of : (Account, opt nat, opt nat) -> (vec nat) query;
+  icrc7_total_supply : () -> (nat) query;
+  // Always fails. These are soulbound; see the module docs in `nft`.
+  icrc7_transfer : (vec TransferArg) -> (vec opt Result_5);
+  icrc7_tx_window : () -> (opt nat) query;
+  // Metadata for the timeline, ordered by `taken_at`. Never bytes — those
+  // would blow the query response limit many times over.
+  list_photos : (nat64) -> (Result_6) query;
+  // Turns a milestone photo into a shared, non-transferable NFT.
+  // 
+  // Irreversible, and it makes the image publicly readable so wallets can
+  // display it. Confirm with the user before calling.
+  mint_keepsake : (PhotoRef) -> (Result_7);
+  // Creates a proposal and mints the invite code to share.
+  // 
+  // Async because the code comes from `raw_rand` — a time- or counter-derived
+  // code would be guessable, and the code is the only thing standing between a
+  // stranger and someone's proposal. Preconditions are checked twice: once here
+  // to fail fast, and again after the await, where the canister may have
+  // processed other messages in between.
+  propose : (ProposeArgs) -> (Result_1);
+  // Idempotent, and chunks may be sent in parallel — each has its own key.
+  put_photo_chunk : (ChunkArgs) -> (Result);
+  // Responds to a pinned invite found in your inbox. Open links go through
+  // `accept_invite`/`decline_invite` instead.
+  respond_to_proposal : (RespondArgs) -> (Result_1);
+  set_title : (SetTitleArgs) -> (Result);
+  start_photo_upload : (PhotoDraft) -> (Result_7);
+  stats : () -> (Stats) query;
+  update_photo : (PhotoPatch) -> (Result);
+  // start + chunk + finish in one call, for a photo that fits in one chunk.
+  // 
+  // Compressed photos almost always do, and this saves three round trips —
+  // roughly eight seconds of the user staring at a spinner.
+  upload_photo : (PhotoDraft, blob) -> (Result_2);
+}

@@ -7,21 +7,26 @@
     "setup": "icp network start -d && icp deploy",
     "start": "vite --port 3000",
     "build": "tsc && vite build",
+    "test": "vitest run --config vitest.config.js",
     "format": "prettier --write \"src/**/*.{json,js,jsx,ts,tsx,css,scss}\""
   },
   "dependencies": {
     "@icp-sdk/auth": "^7.1.0",
     "@icp-sdk/core": "^5.4.0",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^7.18.1"
   },
   "devDependencies": {
     "@icp-sdk/bindgen": "^0.3.0",
+    "@testing-library/react": "^16.3.2",
     "@types/react": "^18.2.14",
     "@types/react-dom": "^18.2.6",
     "@vitejs/plugin-react": "^4.0.1",
+    "jsdom": "^30.0.0",
     "sass": "^1.63.6",
     "typescript": "^5.1.3",
-    "vite": "^6.4.3"
+    "vite": "^6.4.3",
+    "vitest": "^4.1.10"
   }
 }

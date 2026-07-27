@@ -1,0 +1,54 @@
+.invite-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  margin: 1.5rem 0;
+  text-align: left;
+}
+
+.invite-item {
+  padding: 1.2rem;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 105, 180, 0.25);
+  border-radius: var(--radius-box);
+  box-shadow: var(--shadow-box);
+}
+
+.invite-title {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--pink-dark);
+  margin-bottom: 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.status-chip {
+  font-family: var(--font-body);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.2rem 0.6rem;
+  border-radius: 50px;
+  background: rgba(123, 63, 94, 0.12);
+  color: var(--text-mid);
+}
+
+.status-ended {
+  background: rgba(123, 63, 94, 0.15);
+}
+
+.status-declined {
+  background: rgba(179, 38, 30, 0.12);
+  color: var(--danger);
+}
+
+.status-cancelled {
+  background: rgba(0, 0, 0, 0.07);
+  color: rgba(61, 26, 46, 0.65);
+}

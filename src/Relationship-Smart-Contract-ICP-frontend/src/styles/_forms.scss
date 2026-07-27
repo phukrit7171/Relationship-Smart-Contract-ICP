@@ -1,0 +1,125 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  text-align: left;
+  margin: 1.5rem 0;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+
+  input[type="text"],
+  textarea,
+  select {
+    font-family: var(--font-body);
+    font-size: 1rem;
+    color: var(--text-dark);
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(255, 105, 180, 0.3);
+    border-radius: 0.9rem;
+    padding: 0.7rem 0.9rem;
+    width: 100%;
+    transition: all 0.2s ease;
+
+    &:focus {
+      outline: none;
+      border-color: var(--pink-deep);
+      box-shadow: 0 0 0 3px rgba(255, 105, 180, 0.18);
+      background: var(--white);
+    }
+  }
+
+  textarea {
+    resize: vertical;
+    line-height: 1.6;
+  }
+}
+
+.field-inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.95rem;
+  color: var(--text-dark);
+  cursor: pointer;
+
+  input[type="checkbox"] {
+    width: 1.1rem;
+    height: 1.1rem;
+    accent-color: var(--pink-deep);
+    cursor: pointer;
+  }
+}
+
+.field-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--text-mid);
+  font-weight: 700;
+  opacity: 0.8;
+}
+
+.field-count {
+  font-family: var(--font-mono);
+  text-transform: none;
+  letter-spacing: 0;
+  opacity: 0.7;
+}
+
+// A code is read and retyped character by character, so it gets monospace,
+// wide tracking and a size that survives being squinted at.
+.code-input {
+  font-family: var(--font-mono) !important;
+  font-size: clamp(1.2rem, 5vw, 1.6rem) !important;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--pink-dark) !important;
+}
+
+.field-hint {
+  font-size: 0.8rem;
+  color: var(--text-mid);
+  line-height: 1.5;
+  opacity: 0.8;
+  text-align: left;
+}
+
+.error-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin: 1rem 0;
+  padding: 0.8rem 1rem;
+  background: rgba(179, 38, 30, 0.08);
+  border: 1px solid rgba(179, 38, 30, 0.3);
+  border-radius: 0.9rem;
+  color: var(--danger);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.error-dismiss {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  opacity: 0.6;
+
+  &:hover {
+    opacity: 1;
+  }
+}

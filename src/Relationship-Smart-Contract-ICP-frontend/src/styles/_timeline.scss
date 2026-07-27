@@ -1,0 +1,193 @@
+.timeline {
+  list-style: none;
+  position: relative;
+  margin: 1.8rem 0;
+  padding-left: 1.6rem;
+  text-align: left;
+
+  // The vertical thread the markers sit on.
+  &::before {
+    content: "";
+    position: absolute;
+    left: 0.32rem;
+    top: 0.4rem;
+    bottom: 0.4rem;
+    width: 2px;
+    background: linear-gradient(
+      to bottom,
+      rgba(255, 105, 180, 0.55),
+      rgba(249, 168, 37, 0.45)
+    );
+    border-radius: 2px;
+  }
+}
+
+.timeline-item {
+  position: relative;
+  margin-bottom: 1.8rem;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.timeline-marker {
+  position: absolute;
+  left: -1.45rem;
+  top: 0.5rem;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: var(--pink-deep);
+  box-shadow: 0 0 0 3px rgba(255, 240, 246, 0.95);
+}
+
+.timeline-photo {
+  display: block;
+  width: 100%;
+  border-radius: var(--radius-box);
+  overflow: hidden;
+  background: rgba(255, 240, 246, 0.6);
+  border: 1px solid rgba(255, 105, 180, 0.25);
+  box-shadow: var(--shadow-box);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(194, 24, 91, 0.2);
+  }
+}
+
+// Occupies the photo's aspect ratio while it loads, so the timeline doesn't
+// jump as images arrive.
+.photo-placeholder {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    100deg,
+    rgba(255, 240, 246, 0.5) 30%,
+    rgba(255, 255, 255, 0.8) 50%,
+    rgba(255, 240, 246, 0.5) 70%
+  );
+  background-size: 250% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -250% 0;
+  }
+}
+
+.photo-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 6rem;
+  font-size: 1.6rem;
+}
+
+.timeline-meta {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.timeline-date {
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-mid);
+  opacity: 0.8;
+}
+
+.timeline-caption {
+  flex-basis: 100%;
+  font-size: 0.95rem;
+  color: var(--text-dark);
+  line-height: 1.5;
+}
+
+.timeline-empty {
+  margin: 1.8rem 0;
+}
+
+.upload-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  align-items: center;
+
+  img {
+    max-width: 100%;
+    max-height: 320px;
+    border-radius: var(--radius-box);
+    box-shadow: var(--shadow-box);
+  }
+}
+
+.lightbox {
+  margin-bottom: 1.2rem;
+
+  img {
+    max-width: 100%;
+    max-height: 70vh;
+    border-radius: var(--radius-box);
+    box-shadow: 0 8px 32px rgba(194, 24, 91, 0.2);
+  }
+}
+
+.keepsake-box {
+  margin: 1.5rem 0;
+  padding: 1rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  text-align: left;
+  background: rgba(249, 168, 37, 0.1);
+  border: 1px solid rgba(249, 168, 37, 0.4);
+  border-radius: var(--radius-box);
+  box-shadow: var(--shadow-box);
+
+  &.is-minted {
+    background: linear-gradient(
+      135deg,
+      rgba(249, 168, 37, 0.18) 0%,
+      rgba(255, 105, 180, 0.14) 100%
+    );
+    border-color: var(--gold);
+  }
+
+  .logout-btn {
+    margin: 0.2rem auto 0 0;
+  }
+}
+
+.progress {
+  width: 100%;
+  height: 0.5rem;
+  background: rgba(255, 105, 180, 0.18);
+  border-radius: 50px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--pink) 0%, var(--pink-deep) 100%);
+  border-radius: 50px;
+  transition: width 0.2s ease;
+}

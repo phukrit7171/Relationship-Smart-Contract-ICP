@@ -1,0 +1,31 @@
+// Palette and shared shadows, as CSS custom properties so partials can be
+// plain CSS rather than each importing a Sass module.
+:root {
+  --pink-light: #fff0f6;
+  --pink: #ff69b4;
+  --pink-deep: #c2185b;
+  --pink-rose: #e91e63;
+  --pink-dark: #880e4f;
+  --gold: #f9a825;
+  --white: #ffffff;
+  --text-dark: #3d1a2e;
+  --text-mid: #7b3f5e;
+
+  --blue-label: #0369a1;
+  --blue-value: #0c4a6e;
+  --danger: #b3261e;
+
+  --font-body: "Lato", sans-serif;
+  --font-display: "Playfair Display", Georgia, serif;
+  --font-mono: "Courier New", monospace;
+
+  --radius-card: 2rem;
+  --radius-box: 1.2rem;
+
+  --shadow-card: 0 8px 40px rgba(194, 24, 91, 0.18),
+    0 2px 12px rgba(194, 24, 91, 0.1), 0 1px 3px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -1px 0 rgba(255, 182, 193, 0.15);
+  --shadow-box: 0 2px 12px rgba(194, 24, 91, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}

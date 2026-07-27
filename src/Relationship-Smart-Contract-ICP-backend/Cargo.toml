@@ -6,10 +6,15 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
-crate-type = ["cdylib"]
+# rlib so unit tests can import the pure logic (key encoding, invite-code alphabet, ...)
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 candid = "0.10"
 ic-cdk = "0.19"
-ic-cdk-timers = "1" # Feel free to remove this dependency if you don't need timers
+ic-stable-structures = "0.7"
 serde = { version = "1", features = ["derive"] }
+# 0.10, not 0.11: the 0.11 line moves to the new digest traits, and nothing
+# here needs them. no-default-features keeps std out of the wasm build.
+sha2 = { version = "0.10", default-features = false }
+ic-http-certification = "3.2"

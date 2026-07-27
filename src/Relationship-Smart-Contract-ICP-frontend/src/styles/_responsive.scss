@@ -1,0 +1,65 @@
+@media (max-width: 480px) {
+  .card {
+    padding: 2rem 1.2rem;
+    border-radius: 1.5rem;
+  }
+
+  .title {
+    font-size: clamp(1.5rem, 7vw, 1.9rem);
+  }
+
+  .message {
+    font-size: 0.98rem;
+  }
+
+  .sub-message {
+    font-size: 0.88rem;
+  }
+
+  .accept-btn,
+  .login-btn {
+    padding: 0.8rem 2.2rem;
+    font-size: 1.05rem;
+    width: 100%;
+    display: block;
+    text-align: center;
+  }
+
+  .hearts {
+    font-size: 2.4rem;
+  }
+
+  .timestamp-box,
+  .principal-box,
+  .share-box,
+  .invite-item {
+    padding: 1rem;
+    border-radius: 1rem;
+  }
+
+  // Side-by-side yes/no buttons don't fit; stack them so neither is cramped.
+  .share-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 360px) {
+  .card {
+    padding: 1.6rem 1rem;
+  }
+
+  .title {
+    font-size: 1.45rem;
+  }
+
+  .accept-btn,
+  .login-btn {
+    padding: 0.75rem 1.6rem;
+    font-size: 1rem;
+  }
+
+  .hearts {
+    font-size: 2rem;
+  }
+}
