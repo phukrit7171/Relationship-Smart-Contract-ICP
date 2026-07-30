@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { displayCode, inviteUrl, normalizeCode } from "./inviteCode";
+import {
+  displayCode,
+  inviteUrl,
+  isLocalInviteOrigin,
+  normalizeCode,
+} from "./inviteCode";
 
 // Mirrors invite.rs on the backend; both must agree or a typed code that the
 // UI accepts would be rejected on-chain.
@@ -29,6 +34,29 @@ describe("normalizeCode", () => {
     expect(normalizeCode("I23456789Z")).toBe("123456789Z");
     expect(normalizeCode("l23456789Z")).toBe("123456789Z");
     expect(normalizeCode("O23456789Z")).toBe("023456789Z");
+  });
+
+  it("extracts a code from a full invite link", () => {
+    for (const input of [
+      "https://example.com/#/invite/ABCDE-FGHJK",
+      "https://example.com/invite/abcde-fghjk?utm_source=chat",
+      "https://example.com/#/invite/ABCDE%2DFGHJK",
+    ]) {
+      expect(normalizeCode(input)).toBe("ABCDEFGHJK");
+    }
+  });
+
+  it("survives common messaging-app copy and paste artefacts", () => {
+    for (const input of [
+      "\"ABCDE-FGHJK\"",
+      "(ABCDE-FGHJK).",
+      "ABCDE–FGHJK",
+      "ABCDE\u00a0FGHJK",
+      "AB\u200bCDE-FGHJK",
+      "ＡＢＣＤＥ－ＦＧＨＪＫ",
+    ]) {
+      expect(normalizeCode(input)).toBe("ABCDEFGHJK");
+    }
   });
 
   it("rejects U, which is excluded so it cannot be read as V", () => {
@@ -64,5 +92,24 @@ describe("inviteUrl", () => {
     const url = inviteUrl("abcde-fghjk", "https://example.com");
     expect(url).toBe("https://example.com/#/invite/ABCDEFGHJK");
     expect(new URL(url).pathname).toBe("/");
+  });
+});
+
+describe("isLocalInviteOrigin", () => {
+  it("recognises localhost and private-network development origins", () => {
+    for (const origin of [
+      "http://localhost:3000",
+      "http://aaaaa-aa.localhost:8000",
+      "http://127.0.0.1:8000",
+      "http://192.168.1.8:3000",
+      "http://10.0.0.5:3000",
+      "http://172.20.0.2:3000",
+    ]) {
+      expect(isLocalInviteOrigin(origin)).toBe(true);
+    }
+  });
+
+  it("does not flag a production origin", () => {
+    expect(isLocalInviteOrigin("https://aaaaa-aa.icp.net")).toBe(false);
   });
 });

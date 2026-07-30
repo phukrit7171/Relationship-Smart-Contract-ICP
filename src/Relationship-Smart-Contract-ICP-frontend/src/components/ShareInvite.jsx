@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { displayCode, inviteUrl } from "../lib/inviteCode";
+import { displayCode, inviteUrl, isLocalInviteOrigin } from "../lib/inviteCode";
 
 /**
  * The invite link, plus the warning that goes with it: for an unpinned invite
@@ -7,6 +7,7 @@ import { displayCode, inviteUrl } from "../lib/inviteCode";
  */
 export function ShareInvite({ code, pinned, message }) {
   const url = inviteUrl(code);
+  const isLocal = isLocalInviteOrigin();
   const [copied, setCopied] = useState(null);
 
   async function copy(what, value) {
@@ -36,7 +37,7 @@ export function ShareInvite({ code, pinned, message }) {
         type="button"
         className="invite-code"
         onClick={() => copy("code", displayCode(code))}
-        title="Copy the code"
+        title="Copy the code (use it on this same app deployment)"
       >
         {displayCode(code)}
       </button>
@@ -55,6 +56,17 @@ export function ShareInvite({ code, pinned, message }) {
       {copied === "code" && <p className="sub-message">Code copied ✓</p>}
       {copied === "failed" && (
         <p className="sub-message">Couldn't reach the clipboard — copy it by hand.</p>
+      )}
+
+      <p className="sub-message">
+        Send the full link when possible. A code by itself only works on the app
+        deployment where it was created.
+      </p>
+      {isLocal && (
+        <p className="sub-message">
+          This is a local development invite. Another device cannot use it on
+          the production app; create and share a fresh invite from production.
+        </p>
       )}
 
       <p className="timestamp-raw">

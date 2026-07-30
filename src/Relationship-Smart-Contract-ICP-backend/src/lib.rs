@@ -79,13 +79,16 @@ fn post_upgrade() {
 #[ic_cdk::update]
 async fn propose(args: ProposeArgs) -> Res<Relationship> {
     let caller = relationship::authenticated_caller()?;
-    relationship::precheck_propose(caller, &args)?;
+    let guard = relationship::precheck_propose(caller, &args)?;
 
-    let entropy = raw_rand()
-        .await
-        .map_err(|e| Err::Internal(format!("raw_rand failed: {e}")))?;
+    let entropy = match raw_rand().await {
+        Ok(e) => e,
+        Err(e) => {
+            return Err(Err::Internal(format!("raw_rand failed: {e}")));
+        }
+    };
 
-    relationship::finish_propose(caller, args, &entropy)
+    relationship::finish_propose(guard, caller, args, &entropy)
 }
 
 /// Reads an invite without signing in, so someone opening a link can see what

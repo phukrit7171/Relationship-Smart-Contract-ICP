@@ -27,7 +27,8 @@ export function unwrap(result) {
 
 const MESSAGES = {
   NotAuthenticated: "Sign in with Internet Identity first.",
-  NotFound: "This invite link is not valid — it may have been used already, expired, or been cancelled.",
+  NotFound:
+    "This invitation was not found on this app deployment. Open the original full link, or make sure both people use the same app address. It may also have been used, expired, or cancelled.",
   NotAMember: "This isn't yours to change.",
   SelfProposal: "You can't propose to yourself. Send the link to someone else.",
   RecipientUnavailable: "They're already in a relationship.",

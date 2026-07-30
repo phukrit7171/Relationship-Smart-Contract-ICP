@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Page } from "../components/Layout";
-import { CODE_LEN, displayCode, normalizeCode } from "../lib/inviteCode";
+import { displayCode, normalizeCode } from "../lib/inviteCode";
 
 /**
  * Manual entry for someone who has the code but not the link — read aloud,
@@ -16,13 +16,8 @@ export default function JoinWithCode() {
   const [touched, setTouched] = useState(false);
 
   const normalized = normalizeCode(raw);
-  // Anything that isn't a code character is dropped by normalizeCode, so
-  // count what survived to tell "too short" apart from "wrong characters".
-  const kept = raw.replace(/[-\s_]/g, "").length;
-  const problem = !normalized && touched && kept > 0
-    ? kept < CODE_LEN
-      ? `${CODE_LEN - kept} more character${CODE_LEN - kept === 1 ? "" : "s"} to go`
-      : "That doesn't look like an invite code."
+  const problem = !normalized && touched && raw.trim()
+    ? "Paste the 10-character code or the full invitation link."
     : null;
 
   function submit(event) {
@@ -40,13 +35,13 @@ export default function JoinWithCode() {
         Got a code? <span className="title-emoji">🔑</span>
       </h1>
       <p className="sub-message">
-        Type the code someone sent you. Capitals, dashes and spaces don't
-        matter.
+        Paste the full invitation link for the most reliable result, or type
+        its 10-character code. Capitals, dashes and spaces don't matter.
       </p>
 
       <form className="form" onSubmit={submit}>
         <label className="field">
-          <span className="field-label">Invite code</span>
+          <span className="field-label">Invite code or link</span>
           <input
             className="code-input"
             type="text"
@@ -54,11 +49,11 @@ export default function JoinWithCode() {
             autoCapitalize="characters"
             autoComplete="off"
             spellCheck="false"
-            // Room for the two look-alike characters that get rewritten
-            // (I/L and O) plus the dash, so nothing is silently swallowed.
-            maxLength={CODE_LEN + 4}
+            // A full IC invite URL is considerably longer than the display
+            // code. Keep a defensive limit without truncating normal pastes.
+            maxLength={512}
             value={raw}
-            placeholder="XXXXX-XXXXX"
+            placeholder="XXXXX-XXXXX or https://…"
             onChange={(e) => setRaw(e.target.value)}
             onBlur={() => setTouched(true)}
             autoFocus

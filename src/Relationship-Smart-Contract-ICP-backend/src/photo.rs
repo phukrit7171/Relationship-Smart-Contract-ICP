@@ -170,15 +170,17 @@ pub fn start_upload(caller: Principal, draft: PhotoDraft) -> Res<u64> {
     let mut rel = writable_relationship(caller, draft.relationship_id)?;
     sweep_stale_uploads(rel.id, now);
 
-    // Limit at most one concurrent in-flight upload per relationship to prevent storage flooding
-    let has_uploading = with_photos(|m| {
+    // If an upload session is currently in progress, auto-abort it so an abandoned
+    // session never permanently blocks either partner from starting a new upload.
+    let existing_uploading: Vec<PhotoMeta> = with_photos(|m| {
         m.range(PhotoKey::lo(rel.id)..=PhotoKey::hi(rel.id))
-            .any(|e| e.value().state == PhotoState::Uploading)
+            .map(|e| e.value())
+            .filter(|p| p.state == PhotoState::Uploading)
+            .collect()
     });
-    if has_uploading {
-        return Err(Err::QuotaExceeded(
-            "an upload is already in progress for this relationship".into(),
-        ));
+    for photo in existing_uploading {
+        drop_chunks(rel.id, photo.photo_id);
+        with_photos_mut(|m| m.remove(&key(rel.id, photo.photo_id)));
     }
 
     check_quotas(&rel, draft.total_bytes)?;
@@ -316,6 +318,20 @@ pub fn abort_upload(caller: Principal, r: PhotoRef) -> Res<()> {
     drop_chunks(r.relationship_id, r.photo_id);
     with_photos_mut(|m| m.remove(&key(r.relationship_id, r.photo_id)));
     Ok(())
+}
+
+/// Discards any incomplete uploads in this relationship when it ends.
+pub fn abort_all_pending_uploads(rel_id: u64) {
+    let pending: Vec<PhotoMeta> = with_photos(|m| {
+        m.range(PhotoKey::lo(rel_id)..=PhotoKey::hi(rel_id))
+            .map(|e| e.value())
+            .filter(|p| p.state == PhotoState::Uploading)
+            .collect()
+    });
+    for photo in pending {
+        drop_chunks(rel_id, photo.photo_id);
+        with_photos_mut(|m| m.remove(&key(rel_id, photo.photo_id)));
+    }
 }
 
 /// start + all chunks + finish in a single update.
@@ -540,5 +556,44 @@ mod tests {
         let mut d = draft(1000, 1);
         d.width = 0;
         assert!(matches!(validate_draft(&d), Err(Err::Invalid(_))));
+    }
+
+    #[test]
+    fn test_abort_all_pending_uploads_cleans_chunks() {
+        let rel_id = 999;
+        let photo_id = 1;
+        put_meta(&PhotoMeta {
+            photo_id,
+            relationship_id: rel_id,
+            uploader: Principal::anonymous(),
+            kind: PhotoKind::Memory,
+            caption: String::new(),
+            taken_at: 0,
+            uploaded_at: 0,
+            content_type: "image/webp".into(),
+            total_bytes: 100,
+            chunk_count: 1,
+            received_chunks: 1,
+            width: 100,
+            height: 100,
+            sha256: Vec::new(),
+            state: PhotoState::Uploading,
+            is_public: false,
+            token_id: None,
+        });
+        with_chunks_mut(|m| {
+            m.insert(
+                ChunkKey {
+                    rel: rel_id,
+                    photo: photo_id,
+                    idx: 0,
+                },
+                vec![0u8; 100],
+            );
+        });
+
+        assert!(get_meta(rel_id, photo_id).is_ok());
+        abort_all_pending_uploads(rel_id);
+        assert!(get_meta(rel_id, photo_id).is_err());
     }
 }

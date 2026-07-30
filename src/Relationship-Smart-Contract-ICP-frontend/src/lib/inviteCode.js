@@ -1,22 +1,74 @@
 /**
  * Invite code display and normalisation.
  *
- * Mirrors `invite.rs` on the backend: same alphabet, same look-alike
- * substitutions. Doing it here too means a typo is caught before it costs a
- * round trip, but the backend is still the authority.
+ * The canonicalisation step mirrors `invite.rs` on the backend: same alphabet,
+ * same look-alike substitutions. The client additionally extracts codes from
+ * full invite links and removes common copy/paste artefacts before sending the
+ * canonical 10 characters to the backend.
  */
 
 const ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 export const CODE_LEN = 10;
+const INVITE_PATH = /(?:^|[/#])invite\/([^/?#\s]+)/iu;
+const UNICODE_DASH = /[\u2010-\u2015\u2212\uFE58\uFE63\uFF0D]/gu;
+const INVISIBLE = /[\u200B-\u200D\u2060\uFEFF]/gu;
+const EDGE_PUNCTUATION = new Set([
+  "\"",
+  "'",
+  "`",
+  "(",
+  ")",
+  "[",
+  "]",
+  "{",
+  "}",
+  "<",
+  ">",
+  ".",
+  ",",
+  ";",
+  ":",
+  "!",
+  "?",
+  "/",
+  "\\",
+]);
+
+function decodeUrlComponent(value) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+function stripEdgePunctuation(value) {
+  let start = 0;
+  let end = value.length;
+  while (start < end && EDGE_PUNCTUATION.has(value[start])) start += 1;
+  while (end > start && EDGE_PUNCTUATION.has(value[end - 1])) end -= 1;
+  return value.slice(start, end);
+}
+
+function inviteCandidate(raw) {
+  if (!raw) return "";
+  const cleaned = String(raw)
+    .normalize("NFKC")
+    .replace(INVISIBLE, "")
+    .replace(UNICODE_DASH, "-")
+    .trim();
+  const fromLink = cleaned.match(INVITE_PATH)?.[1];
+  const candidate = fromLink ?? cleaned.split(/[?#]/u)[0];
+  return stripEdgePunctuation(decodeUrlComponent(candidate).trim());
+}
 
 /** Returns the canonical 10-character code, or null if it can't be one. */
 export function normalizeCode(raw) {
-  if (!raw) return null;
-  let cleaned = String(raw).trim().split(/[?#]/)[0];
-  cleaned = cleaned.replace(/[/\.\s]+$/, "");
+  const cleaned = inviteCandidate(raw);
+  if (!cleaned) return null;
   let out = "";
   for (const ch of cleaned) {
-    if (ch === "-" || ch === " " || ch === "_") continue;
+    if (ch === "-" || ch === "_" || /\s/u.test(ch)) continue;
     if (out.length === CODE_LEN) return null;
     let c = ch.toUpperCase();
     if (c === "I" || c === "L") c = "1";
@@ -46,3 +98,21 @@ export function inviteUrl(code, origin = window.location.origin) {
   return `${cleanOrigin}/#/invite/${normalizeCode(code) ?? code}`;
 }
 
+/** True when an invite link points at a development network on this machine/LAN. */
+export function isLocalInviteOrigin(origin = window.location.origin) {
+  try {
+    const hostname = new URL(origin).hostname.toLowerCase();
+    return (
+      hostname === "localhost" ||
+      hostname.endsWith(".localhost") ||
+      hostname === "0.0.0.0" ||
+      hostname === "::1" ||
+      hostname.startsWith("127.") ||
+      hostname.startsWith("10.") ||
+      hostname.startsWith("192.168.") ||
+      /^172\.(1[6-9]|2\d|3[01])\./u.test(hostname)
+    );
+  } catch {
+    return false;
+  }
+}

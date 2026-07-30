@@ -165,10 +165,47 @@ fn check_propose_preconditions(caller: Principal, args: &ProposeArgs, now: u64) 
     assert_both_free(caller, args.recipient)
 }
 
-pub fn precheck_propose(caller: Principal, args: &ProposeArgs) -> Res<u64> {
-    let ttl = validate_propose_args(caller, args)?;
-    check_propose_preconditions(caller, args, time())?;
-    Ok(ttl)
+use std::cell::RefCell;
+use std::collections::BTreeSet;
+
+thread_local! {
+    static PENDING_PROPOSALS: RefCell<BTreeSet<Principal>> = RefCell::new(BTreeSet::new());
+}
+
+pub struct ProposalGuard(pub Principal);
+
+impl Drop for ProposalGuard {
+    fn drop(&mut self) {
+        PENDING_PROPOSALS.with_borrow_mut(|set| {
+            set.remove(&self.0);
+        });
+    }
+}
+
+pub fn precheck_propose(caller: Principal, args: &ProposeArgs) -> Res<ProposalGuard> {
+    PENDING_PROPOSALS.with_borrow_mut(|set| {
+        if !set.insert(caller) {
+            return Err(Err::InvalidState(
+                "a proposal creation is already in progress for this user".into(),
+            ));
+        }
+        Ok(())
+    })?;
+
+    let res = (|| {
+        let _ttl = validate_propose_args(caller, args)?;
+        check_propose_preconditions(caller, args, time())?;
+        Ok(())
+    })();
+
+    if res.is_err() {
+        PENDING_PROPOSALS.with_borrow_mut(|set| {
+            set.remove(&caller);
+        });
+        res?;
+    }
+
+    Ok(ProposalGuard(caller))
 }
 
 /// Second half of `propose`, run after `raw_rand` returns.
@@ -176,7 +213,13 @@ pub fn precheck_propose(caller: Principal, args: &ProposeArgs) -> Res<u64> {
 /// Re-validates from scratch: between the two halves the canister may have
 /// processed any number of other messages, so nothing read before the await
 /// can be trusted.
-pub fn finish_propose(caller: Principal, args: ProposeArgs, entropy: &[u8]) -> Res<Relationship> {
+pub fn finish_propose(
+    guard: ProposalGuard,
+    caller: Principal,
+    args: ProposeArgs,
+    entropy: &[u8],
+) -> Res<Relationship> {
+    let _g = guard;
     let now = time();
     let ttl = validate_propose_args(caller, &args)?;
     check_propose_preconditions(caller, &args, now)?;
@@ -369,6 +412,8 @@ pub fn end(caller: Principal, args: EndArgs) -> Res<()> {
             m.remove(&PKey::from(recipient));
         }
     });
+    // Clean up any un-finalized upload session and chunks for this relationship.
+    crate::photo::abort_all_pending_uploads(rel.id);
     rel.status = RelStatus::Ended;
     rel.ended_at = Some(time());
     rel.ended_by = Some(caller);
@@ -456,24 +501,30 @@ pub fn my_state() -> MyState {
     .collect();
 
     // Uses MemoryId(12) index keyed by member for O(log N + K) range scan.
-    // Ids ascend with creation time, so descending id is newest-first.
-    let mut history: Vec<Relationship> = with_member_relationships(|m| {
+    // MemberRelKey puts rel ID at the tail in big-endian, so .rev() iterates newest-first.
+    let rel_ids: Vec<u64> = with_member_relationships(|m| {
         m.range(MemberRelKey::lo(who)..=MemberRelKey::hi(who))
             .map(|e| e.key().rel)
-            .collect::<Vec<_>>()
-    })
-    .into_iter()
-    .filter_map(|id| get(id).ok())
-    .filter(|r| {
-        r.is_member(caller)
-            && matches!(
-                r.status,
-                RelStatus::Ended | RelStatus::Declined | RelStatus::Cancelled
-            )
-    })
-    .collect();
-    history.sort_by(|a, b| b.id.cmp(&a.id));
-    history.truncate(MAX_HISTORY_ITEMS);
+            .rev()
+            .collect()
+    });
+
+    let mut history = Vec::with_capacity(MAX_HISTORY_ITEMS);
+    for id in rel_ids {
+        if let Ok(r) = get(id) {
+            if r.is_member(caller)
+                && matches!(
+                    r.status,
+                    RelStatus::Ended | RelStatus::Declined | RelStatus::Cancelled
+                )
+            {
+                history.push(r);
+                if history.len() >= MAX_HISTORY_ITEMS {
+                    break;
+                }
+            }
+        }
+    }
 
     MyState {
         caller,

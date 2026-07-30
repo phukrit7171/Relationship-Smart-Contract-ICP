@@ -112,8 +112,9 @@ export default function InviteLanding() {
         </div>
         <h1 className="title">This link doesn't work</h1>
         <p className="message">
-          It may have already been accepted, been cancelled, or expired.
-          Invitations don't stay open forever.
+          Open the original full link and make sure both people use the same app
+          address. This invitation may also have been accepted, cancelled, or
+          expired.
         </p>
         <ErrorBanner error={error} />
         {/* A mangled link is the likeliest cause, so offer retyping the code
