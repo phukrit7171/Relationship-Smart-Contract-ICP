@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { usePhotoBlob } from "../hooks/usePhotoBlob";
+import { forget } from "../lib/photoCache";
 import { nsToShortDate } from "../lib/format";
 
 const KIND_BADGE = {
@@ -18,6 +19,7 @@ const KIND_BADGE = {
 function PhotoTile({ relationshipId, meta }) {
   const ref = useRef(null);
   const [visible, setVisible] = useState(false);
+  const [imgError, setImgError] = useState(false);
   const { url, error } = usePhotoBlob(relationshipId, meta, visible);
 
   useEffect(() => {
@@ -49,10 +51,21 @@ function PhotoTile({ relationshipId, meta }) {
         to={`/us/photo/${meta.photo_id}`}
         style={{ aspectRatio: `${meta.width} / ${meta.height}` }}
       >
-        {url ? (
-          <img src={url} alt={meta.caption || "A photo"} loading="lazy" />
-        ) : error ? (
-          <span className="photo-error" title={error.message}>
+        {url && !imgError ? (
+          <img
+            src={url}
+            alt={meta.caption || "A photo"}
+            loading="lazy"
+            onError={() => {
+              forget(relationshipId, meta);
+              setImgError(true);
+            }}
+          />
+        ) : error || imgError ? (
+          <span
+            className="photo-error"
+            title={error?.message || "Image failed to load"}
+          >
             ⚠️
           </span>
         ) : (

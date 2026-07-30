@@ -76,6 +76,7 @@ export default function PhotoDetail() {
 
   const meta = photos.find((p) => p.photo_id.toString() === photoId);
   const { url, error: blobError } = usePhotoBlob(active?.id, meta, Boolean(meta));
+  const [imgError, setImgError] = useState(false);
 
   const [caption, setCaption] = useState(meta?.caption ?? "");
   const [editing, setEditing] = useState(false);
@@ -163,10 +164,19 @@ export default function PhotoDetail() {
   return (
     <Page>
       <div className="lightbox">
-        {url ? (
-          <img src={url} alt={meta.caption || "A photo"} />
-        ) : blobError ? (
-          <ErrorBanner error={blobError} />
+        {url && !imgError ? (
+          <img
+            src={url}
+            alt={meta.caption || "A photo"}
+            onError={() => {
+              forget(active?.id, meta);
+              setImgError(true);
+            }}
+          />
+        ) : blobError || imgError ? (
+          <ErrorBanner
+            error={blobError || new Error("Image failed to load in browser.")}
+          />
         ) : (
           <Spinner label="Loading the photo…" />
         )}

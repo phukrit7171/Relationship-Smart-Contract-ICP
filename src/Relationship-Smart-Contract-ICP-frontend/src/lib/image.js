@@ -25,8 +25,12 @@ async function encode(bitmap, width, height, type, quality) {
   if (typeof OffscreenCanvas !== "undefined") {
     try {
       const canvas = new OffscreenCanvas(width, height);
-      canvas.getContext("2d").drawImage(bitmap, 0, 0, width, height);
-      return await canvas.convertToBlob({ type, quality });
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.drawImage(bitmap, 0, 0, width, height);
+        const blob = await canvas.convertToBlob({ type, quality });
+        if (blob && blob.size > 0) return blob;
+      }
     } catch {
       // Fall back to DOM canvas if OffscreenCanvas fails (e.g. iOS WebP support edge cases)
     }
@@ -34,10 +38,15 @@ async function encode(bitmap, width, height, type, quality) {
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
-  canvas.getContext("2d").drawImage(bitmap, 0, 0, width, height);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new ImageError("Could not process image canvas.");
+  ctx.drawImage(bitmap, 0, 0, width, height);
   return new Promise((resolve, reject) =>
     canvas.toBlob(
-      (blob) => (blob ? resolve(blob) : reject(new ImageError("Encoding failed."))),
+      (blob) =>
+        blob && blob.size > 0
+          ? resolve(blob)
+          : reject(new ImageError("Encoding failed.")),
       type,
       quality,
     ),

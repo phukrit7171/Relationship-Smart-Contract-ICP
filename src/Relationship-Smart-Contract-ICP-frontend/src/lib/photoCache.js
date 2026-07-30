@@ -34,8 +34,15 @@ export async function getPersisted(relationshipId, meta) {
   if (typeof caches === "undefined") return null;
   try {
     const cache = await caches.open(CACHE_NAME);
-    const hit = await cache.match(cacheKey(relationshipId, meta));
-    return hit ? hit.blob() : null;
+    const key = cacheKey(relationshipId, meta);
+    const hit = await cache.match(key);
+    if (!hit) return null;
+    const blob = await hit.blob();
+    if (!blob || blob.size === 0) {
+      await cache.delete(key);
+      return null;
+    }
+    return blob;
   } catch {
     // Cache API is unavailable in some private-browsing modes. Not fatal.
     return null;
