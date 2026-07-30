@@ -118,6 +118,25 @@ function detectMimeType(bytes, declaredType) {
   return declaredType || "image/jpeg";
 }
 
+function bytesToBase64(bytes) {
+  let binary = "";
+  const len = bytes.byteLength;
+  const CHUNK = 0x8000;
+  for (let i = 0; i < len; i += CHUNK) {
+    binary += String.fromCharCode.apply(
+      null,
+      bytes.subarray(i, Math.min(i + CHUNK, len)),
+    );
+  }
+  return btoa(binary);
+}
+
+export function bytesToDataUrl(bytes, declaredType) {
+  const mimeType = detectMimeType(bytes, declaredType);
+  const base64 = bytesToBase64(bytes);
+  return `data:${mimeType};base64,${base64}`;
+}
+
 async function fetchBlob(actor, relationshipId, meta) {
   let chunks;
   try {
@@ -155,12 +174,11 @@ async function fetchBlob(actor, relationshipId, meta) {
     }
   }
 
-  const mimeType = detectMimeType(bytes, meta.content_type);
-  return new Blob([bytes], { type: mimeType });
+  return { blob: new Blob([bytes], { type: detectMimeType(bytes, meta.content_type) }), bytes };
 }
 
 /**
- * Resolves a photo to an object URL, checking both caches first.
+ * Resolves a photo to an object URL or Data URL, checking both caches first.
  *
  * @param {boolean} enabled pass false until the tile is on screen — a
  *   200-photo timeline would otherwise fire hundreds of queries at once.
@@ -191,19 +209,25 @@ export function usePhotoBlob(relationshipId, meta, enabled = true) {
     (async () => {
       try {
         let blob = await getPersisted(relationshipId, meta);
-        if (!blob) {
-          blob = await fetchBlob(actor, relationshipId, meta);
-          await putPersisted(relationshipId, meta, blob);
+        if (blob) {
+          const rawBuf = new Uint8Array(await blob.arrayBuffer());
+          if (rawBuf.length > 0) {
+            const dataUrl = bytesToDataUrl(rawBuf, meta.content_type);
+            putMemory(relationshipId, meta, dataUrl);
+            if (!cancelled) setUrl(dataUrl);
+            return;
+          }
         }
+        const { blob: freshBlob, bytes } = await fetchBlob(
+          actor,
+          relationshipId,
+          meta,
+        );
+        await putPersisted(relationshipId, meta, freshBlob);
         if (cancelled) return;
-        const existing = getMemory(relationshipId, meta);
-        if (existing) {
-          setUrl(existing);
-          return;
-        }
-        const objectUrl = URL.createObjectURL(blob);
-        putMemory(relationshipId, meta, objectUrl);
-        setUrl(objectUrl);
+        const dataUrl = bytesToDataUrl(bytes, meta.content_type);
+        putMemory(relationshipId, meta, dataUrl);
+        setUrl(dataUrl);
       } catch (err) {
         console.error("[usePhotoBlob] Error loading photo:", err);
         if (!cancelled) setError(err);
@@ -213,9 +237,6 @@ export function usePhotoBlob(relationshipId, meta, enabled = true) {
     return () => {
       cancelled = true;
     };
-    // Object URLs are owned by photoCache, not by this hook, so they are
-    // deliberately not revoked on unmount — the next tile for the same photo
-    // reuses them. photoCache.clearAll() releases them on sign-out.
   }, [actor, relationshipId, photoId, enabled]);
 
   return { url, error };
