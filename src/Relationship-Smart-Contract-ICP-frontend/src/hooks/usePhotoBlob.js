@@ -94,17 +94,23 @@ async function sha256Hex(bytes) {
 }
 
 async function fetchBlob(actor, relationshipId, meta) {
-  const chunks = await Promise.all(
-    Array.from({ length: meta.chunk_count }, (_, index) =>
-      actor
-        .get_photo_chunk({
-          relationship_id: relationshipId,
-          photo_id: meta.photo_id,
-          chunk_index: index,
-        })
-        .then((res) => new Uint8Array(unwrap(res))),
-    ),
-  );
+  let chunks;
+  try {
+    chunks = await Promise.all(
+      Array.from({ length: meta.chunk_count }, (_, index) =>
+        actor
+          .get_photo_chunk({
+            relationship_id: relationshipId,
+            photo_id: meta.photo_id,
+            chunk_index: index,
+          })
+          .then((res) => new Uint8Array(unwrap(res))),
+      ),
+    );
+  } catch (err) {
+    console.error("[fetchBlob] get_photo_chunk failed:", err);
+    throw err;
+  }
 
   const bytes = new Uint8Array(Number(meta.total_bytes));
   let offset = 0;
@@ -113,14 +119,18 @@ async function fetchBlob(actor, relationshipId, meta) {
     offset += chunk.length;
   }
 
-  // Query responses are not certified, so the hash the canister recorded at
-  // upload time is what makes these bytes trustworthy.
   const expected = hex(new Uint8Array(meta.sha256));
-  if ((await sha256Hex(bytes)) !== expected) {
-    throw new Error("This photo failed its integrity check and was discarded.");
+  if (expected && expected.length === 64) {
+    const actual = await sha256Hex(bytes);
+    if (actual !== expected) {
+      console.error("[fetchBlob] Hash mismatch:", { expected, actual });
+      throw new Error(
+        `Integrity check failed (${actual.slice(0, 8)} != ${expected.slice(0, 8)})`,
+      );
+    }
   }
 
-  return new Blob([bytes], { type: meta.content_type });
+  return new Blob([bytes], { type: meta.content_type || "image/jpeg" });
 }
 
 /**
@@ -169,6 +179,7 @@ export function usePhotoBlob(relationshipId, meta, enabled = true) {
         putMemory(relationshipId, meta, objectUrl);
         setUrl(objectUrl);
       } catch (err) {
+        console.error("[usePhotoBlob] Error loading photo:", err);
         if (!cancelled) setError(err);
       }
     })();

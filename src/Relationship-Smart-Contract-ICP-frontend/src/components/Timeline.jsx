@@ -62,12 +62,25 @@ function PhotoTile({ relationshipId, meta }) {
             }}
           />
         ) : error || imgError ? (
-          <span
-            className="photo-error"
-            title={error?.message || "Image failed to load"}
-          >
-            ⚠️
-          </span>
+          <div className="photo-error-box">
+            <span className="photo-error">⚠️</span>
+            <small className="photo-error-msg">
+              {error?.message || "Image failed to render"}
+            </small>
+            <button
+              type="button"
+              className="logout-btn"
+              style={{ padding: "0.2rem 0.5rem", fontSize: "0.75rem" }}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                forget(relationshipId, meta);
+                window.location.reload();
+              }}
+            >
+              Retry 🔄
+            </button>
+          </div>
         ) : (
           <span className="photo-placeholder" aria-hidden="true" />
         )}
