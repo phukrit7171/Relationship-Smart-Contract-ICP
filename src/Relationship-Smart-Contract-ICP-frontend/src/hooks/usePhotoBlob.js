@@ -93,6 +93,31 @@ async function sha256Hex(bytes) {
   return jsSha256Hex(bytes);
 }
 
+function detectMimeType(bytes, declaredType) {
+  if (bytes && bytes.length >= 4) {
+    if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+      return "image/jpeg";
+    }
+    if (
+      bytes[0] === 0x89 &&
+      bytes[1] === 0x50 &&
+      bytes[2] === 0x4e &&
+      bytes[3] === 0x47
+    ) {
+      return "image/png";
+    }
+    if (
+      bytes[0] === 0x52 &&
+      bytes[1] === 0x49 &&
+      bytes[2] === 0x46 &&
+      bytes[3] === 0x46
+    ) {
+      return "image/webp";
+    }
+  }
+  return declaredType || "image/jpeg";
+}
+
 async function fetchBlob(actor, relationshipId, meta) {
   let chunks;
   try {
@@ -130,7 +155,8 @@ async function fetchBlob(actor, relationshipId, meta) {
     }
   }
 
-  return new Blob([bytes], { type: meta.content_type || "image/jpeg" });
+  const mimeType = detectMimeType(bytes, meta.content_type);
+  return new Blob([bytes], { type: mimeType });
 }
 
 /**

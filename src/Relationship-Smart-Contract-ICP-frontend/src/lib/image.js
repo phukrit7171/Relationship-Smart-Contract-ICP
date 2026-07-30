@@ -87,10 +87,8 @@ export async function compressImage(file) {
       const height = Math.max(1, Math.round(bitmap.height * scale));
       // Browsers that can't encode the requested type silently fall back to
       // PNG, which is far bigger — so trust blob.type, not the request.
-      const blob = await encode(bitmap, width, height, "image/webp", quality);
-      const contentType = ACCEPTED_TYPES.includes(blob.type)
-        ? blob.type
-        : "image/jpeg";
+      const blob = await encode(bitmap, width, height, "image/jpeg", quality);
+      const contentType = "image/jpeg";
       const candidate = { blob, width, height, contentType };
 
       if (!best || blob.size < best.blob.size) best = candidate;
